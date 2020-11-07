@@ -1,0 +1,64 @@
+#include <MPython.h>
+#include <DFString.h>
+#include <DFRobot_Iot.h>
+#include <mPython_tinywebdb.h>
+#include <DFRobot_HuskyLens.h>
+
+// 动态变量
+volatile float mind_n_ShiBieDeID;
+// 函数声明
+void DF_DuQuShuJu();
+// 静态常量
+const String topics[5] = {"Igi-Lh2MR","","","",""};
+// 创建对象
+DFRobot_Iot       myIot;
+mPython_TinyWebDB mydb;
+DFRobot_HuskyLens huskylens;
+
+
+// 主程序开始
+void setup() {
+	mPython.begin();
+	myIot.wifiConnect("zyq", "12345678");
+	while (!myIot.wifiStatus()) {yield();}
+	display.setCursorLine(1);
+	display.printLine("WIFI连接成功");
+	myIot.init("iot.dfrobot.com.cn","jFSwAiFMg","","CFSQ0iFGRz",topics,1883);
+	myIot.connect();
+	while (!myIot.connected()) {yield();}
+	display.setCursorLine(2);
+	display.printLine("MQTT连接成功");
+	mydb.setServerParameter("http://tinywebdb.appinventor.space/api", "zyq226","a46a5f05");
+	huskylens.beginI2CUntilSuccess();
+	huskylens.writeAlgorithm(ALGORITHM_FACE_RECOGNITION);
+}
+void loop() {
+	huskylens.request();
+	if (huskylens.isAppearDirect(HUSKYLENSResultBlock)) {
+		mind_n_ShiBieDeID = huskylens.readBlockCenterParameterDirect().ID;
+		if ((mind_n_ShiBieDeID==1)) {
+			rgb.write(0, 0x00FF00);
+			DF_DuQuShuJu();
+		}
+		else if ((mind_n_ShiBieDeID==2)) {
+			rgb.write(1, 0xFF0000);
+			DF_DuQuShuJu();
+		}
+		else if ((mind_n_ShiBieDeID==4)) {
+			rgb.write(2, 0x0000FF);
+			DF_DuQuShuJu();
+		}
+		else {
+			display.setCursorLine(3);
+			display.printLine("请先录入人脸");
+		}
+	}
+}
+
+
+// 自定义函数
+void DF_DuQuShuJu() {
+	display.setCursorLine(3);
+	display.printLine(mydb.getTag((dfstring.substring((String(mind_n_ShiBieDeID)),0,1,0,1))));
+	myIot.publish(topic_0, mydb.getTag((dfstring.substring((String(mind_n_ShiBieDeID)),0,1,0,1))));
+}
